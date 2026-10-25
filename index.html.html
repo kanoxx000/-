@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Царь Номеров — Plate Tycoon</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Yandex Games SDK -->
+    <script src="https://yandex.ru/games/sdk/v2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Share+Tech+Mono&display=swap');
+
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: #05070b;
+            color: #f3f4f6;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .plate-font {
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .neon-glow {
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.25);
+        }
+
+        .neon-glow-gold {
+            box-shadow: 0 0 30px rgba(234, 179, 8, 0.35);
+        }
+
+        .neon-glow-purple {
+            box-shadow: 0 0 30px rgba(168, 85, 247, 0.35);
+        }
+
+        .neon-text {
+            text-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-blue-500 selection:text-white">
+
+    <!-- TOP HEADER -->
+    <header class="w-full bg-[#0b0f19]/95 backdrop-blur-md border-b border-gray-800 sticky top-0 px-4 py-3 z-50">
+        <div class="max-w-md mx-auto flex items-center justify-between">
+            <div>
+                <div class="text-[10px] text-gray-400 tracking-wider">БАЛАНС</div>
+                <div id="money-display" class="text-lg font-bold text-cyan-400 neon-text">0 ₽</div>
+            </div>
+            <div class="text-center">
+                <div class="text-[10px] text-gray-400 tracking-wider">ИНВЕНТАРЬ</div>
+                <div id="slots-display" class="text-sm font-semibold text-gray-200">0 / 6</div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="toggleAudio()" id="audio-btn" class="w-9 h-9 bg-gray-900 border border-gray-800 rounded-xl flex items-center justify-center text-gray-400 hover:text-white transition">
+                    🔊
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-1 max-w-md w-full mx-auto px-4 py-3 flex flex-col justify-between pb-28">
+
+        <!-- TAB 1: GARAGE -->
+        <div id="tab-garage" class="tab-content flex flex-col items-center space-y-4">
+            <div class="text-center">
+                <h1 class="text-xl font-extrabold tracking-widest bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">ЦАРЬ НОМЕРОВ</h1>
+                <p class="text-xs text-gray-400 mt-0.5">Премиальный аукцион госномеров</p>
+            </div>
+
+            <!-- Reseller Quick Widget -->
+            <div class="w-full bg-[#111827] border border-gray-800/80 rounded-xl p-3 flex items-center justify-between shadow-lg">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-8 h-8 bg-blue-900/40 border border-blue-700/50 rounded-lg flex items-center justify-center text-cyan-400 text-xs">🤖</div>
+                    <div>
+                        <div class="text-xs font-bold text-cyan-300">Автоскупщик Алик</div>
+                        <div id="reseller-status-text" class="text-[10px] text-gray-400">Ур. 0 (Купите в апгрейдах)</div>
+                    </div>
+                </div>
+                <button id="reseller-toggle-btn" onclick="toggleReseller()" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-gray-800 text-gray-500 cursor-not-allowed" disabled>ВЫКЛ</button>
+            </div>
+
+            <!-- Plate Showcase Area (Realistic GOST RF) -->
+            <div id="plate-container" class="w-full bg-[#0f172a] border border-gray-800/80 rounded-2xl p-5 flex flex-col items-center justify-center min-h-[220px] relative neon-glow transition-all duration-300">
+                <div id="plate-placeholder" class="text-gray-500 text-xs text-center tracking-wide">Нажмите «Получить номер», чтобы найти редкий лот</div>
+                
+                <div id="active-plate" class="hidden flex flex-col items-center w-full">
+                    <!-- Rarity badge -->
+                    <span id="plate-rarity-badge" class="text-[10px] px-3 py-1 rounded-full uppercase font-bold mb-3 tracking-wider shadow-sm">Обычный</span>
+                    
+                    <!-- Stylized Russian GOST License Plate with Metallic Sheen -->
+                    <div id="plate-visual" class="bg-white text-black font-black border-[3px] border-black rounded-lg px-4 py-2.5 flex items-center justify-between shadow-2xl w-68 select-none plate-font relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-b from-white/60 via-transparent to-black/10 pointer-events-none"></div>
+                        <div class="flex items-center space-x-0.5 z-10">
+                            <span id="p-letter1" class="text-2xl tracking-tight">А</span>
+                            <span id="p-digits" class="text-2xl tracking-tighter">777</span>
+                            <span id="p-letter2" class="text-2xl tracking-tight">АА</span>
+                        </div>
+                        <div class="flex flex-col items-center border-l-2 border-black pl-2.5 ml-2 z-10">
+                            <span id="p-region" class="text-xl leading-none font-bold">77</span>
+                            <div class="flex flex-col items-center text-[8px] mt-0.5 font-sans font-bold leading-none">
+                                <div class="w-3.5 h-2.5 bg-white border border-gray-400 flex flex-col rounded-[1px] overflow-hidden mb-0.5">
+                                    <div class="h-1 bg-white"></div>
+                                    <div class="h-0.5 bg-blue-600"></div>
+                                    <div class="h-1 bg-red-600"></div>
+                                </div>
+                                <span class="tracking-widest scale-95 font-black text-[7px]">RUS</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3.5 text-center">
+                        <div class="text-[10px] text-gray-400 tracking-wider">ОЦЕНОЧНАЯ СТОИМОСТЬ</div>
+                        <div id="plate-price" class="text-base font-bold text-emerald-400">0 ₽</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Control Area -->
+            <div id="control-area" class="w-full">
+                <!-- Generate Button -->
+                <button id="btn-generate" onclick="generatePlate()" class="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 active:scale-98 text-white font-extrabold py-3.5 rounded-2xl shadow-xl neon-glow transition text-base tracking-wider uppercase">
+                    Получить номер
+                </button>
+
+                <!-- Plate Actions (Hidden until generated) -->
+                <div id="plate-actions" class="w-full grid grid-cols-2 gap-3 hidden">
+                    <button onclick="sellCurrentPlate()" class="bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-bold py-3 rounded-xl transition shadow-lg text-sm">Продать</button>
+                    <button onclick="storeCurrentPlate()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-3 rounded-xl transition shadow-lg text-sm">В инвентарь</button>
+                </div>
+            </div>
+
+            <!-- Rewarded Ad Bonus Button -->
+            <button onclick="watchAdForBonus()" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-98 text-white font-bold py-2.5 rounded-xl shadow-lg neon-glow-purple transition text-xs flex items-center justify-center space-x-2">
+                <span>🎁 Бонус +150,000 ₽ (Реклама)</span>
+            </button>
+        </div>
+
+        <!-- TAB 2: INVENTORY MODAL/SCREEN -->
+        <div id="tab-inventory" class="tab-content hidden flex flex-col space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-lg font-bold">Инвентарь номеров</h2>
+                <button onclick="sellAllPlates()" class="text-xs bg-rose-950/60 hover:bg-rose-900 text-rose-300 px-3 py-1.5 rounded-lg border border-rose-800 transition">Продать все</button>
+            </div>
+            <div id="inventory-grid" class="grid grid-cols-2 gap-3 overflow-y-auto max-h-[62vh] pr-1">
+                <!-- Dynamic inventory items -->
+            </div>
+        </div>
+
+        <!-- TAB 3: UPGRADES MODAL/SCREEN -->
+        <div id="tab-upgrades" class="tab-content hidden flex flex-col space-y-4">
+            <h2 class="text-lg font-bold">Улучшения гаража</h2>
+            <div id="upgrades-list" class="flex flex-col space-y-3 overflow-y-auto max-h-[65vh] pr-1">
+                <!-- Dynamic upgrades -->
+            </div>
+        </div>
+
+        <!-- TAB 4: ACHIEVEMENTS MODAL/SCREEN -->
+        <div id="tab-achievements" class="tab-content hidden flex flex-col space-y-4">
+            <h2 class="text-lg font-bold">Достижения</h2>
+            <div id="achievements-list" class="flex flex-col space-y-3 overflow-y-auto max-h-[65vh] pr-1">
+                <!-- Dynamic achievements -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- NOTIFICATION TOAST -->
+    <div id="toast" class="fixed top-16 left-1/2 transform -translate-x-1/2 bg-gray-900 border border-cyan-500 text-cyan-300 px-4 py-2 rounded-xl shadow-2xl text-xs font-semibold opacity-0 pointer-events-none transition-opacity duration-300 z-50">
+        Уведомление
+    </div>
+
+    <!-- BOTTOM NAVIGATION BAR -->
+    <nav class="w-full bg-[#0b0f19] border-t border-gray-800 fixed bottom-0 left-0 py-2.5 z-40">
+        <div class="max-w-md mx-auto flex justify-around items-center">
+            <button onclick="switchTab('garage')" class="nav-btn flex flex-col items-center text-cyan-400 transition-colors" data-tab="garage">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                <span class="text-[9px] mt-1 font-medium">Гараж</span>
+            </button>
+            <button onclick="switchTab('inventory')" class="nav-btn flex flex-col items-center text-gray-400 hover:text-gray-200 transition-colors" data-tab="inventory">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                <span class="text-[9px] mt-1 font-medium">Инвентарь</span>
+            </button>
+            <button onclick="switchTab('upgrades')" class="nav-btn flex flex-col items-center text-gray-400 hover:text-gray-200 transition-colors" data-tab="upgrades">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span class="text-[9px] mt-1 font-medium">Апгрейды</span>
+            </button>
+            <button onclick="switchTab('achievements')" class="nav-btn flex flex-col items-center text-gray-400 hover:text-gray-200 transition-colors" data-tab="achievements">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+                <span class="text-[9px] mt-1 font-medium">Ачивки</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- GAME LOGIC SCRIPT -->
+    <script>
+        let ysdk = null;
+        let player = null;
+        let soundEnabled = true;
+
+        // Web Audio API Synthesizer for SFX
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+                if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(450, now);
+                    osc.frequency.exponentialRampToValueAtTime(750, now + 0.04);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.04);
+                    osc.start(now);
+                    osc.stop(now + 0.04);
+                } else if (type === 'sell') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.08);
+                    osc.frequency.setValueAtTime(783.99, now + 0.15);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'rare') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.setValueAtTime(554.37, now + 0.08);
+                    osc.frequency.setValueAtTime(659.25, now + 0.16);
+                    osc.frequency.setValueAtTime(880, now + 0.24);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                }
+            } catch(e) { console.error('Audio error', e); }
+        }
+
+        const LETTERS = "АВЕКМНОРСТУХ";
+        const REGIONS = ['77', '78', '99', '197', '777', '799', '150', '199', '05', '23', '54', '96', '161', '750'];
+
+        let game = {
+            money: 7500,
+            inventory: [],
+            currentPlate: null,
+            isGenerating: false,
+            resellerActive: false,
+            stats: {
+                totalEarned: 0,
+                platesGenerated: 0,
+                legendaryFound: 0
+            },
+            upgrades: {
+                luck: 0,
+                slots: 0,
+                speed: 0,
+                reseller: 0
+            },
+            achievements: {
+                first_sale: false,
+                collector: false,
+                magnat: false,
+                legend: false
+            }
+        };
+
+        const RARITIES = {
+            common: { name: 'Обычный', color: 'bg-gray-700 text-gray-200', priceMin: 600, priceMax: 3000, chance: 62 },
+            rare: { name: 'Редкий', color: 'bg-blue-600 text-white', priceMin: 6000, priceMax: 25000, chance: 24 },
+            epic: { name: 'Блатные', color: 'bg-purple-600 text-white', priceMin: 60000, priceMax: 250000, chance: 11 },
+            legendary: { name: 'Легендарный', color: 'bg-amber-400 text-black font-extrabold', priceMin: 600000, priceMax: 2500000, chance: 3 }
+        };
+
+        const UPGRADE_CONFIGS = {
+            luck: { name: '🍀 Удача искателя', desc: 'Повышает шанс выпадения редких и блатных номеров', baseCost: 1800, costMult: 2.1, maxLevel: 10 },
+            slots: { name: '📦 Гаражный отсек', desc: 'Увеличивает вместимость инвентаря на 2 слота', baseCost: 2200, costMult: 1.7, maxLevel: 9 },
+            speed: { name: '⚡ Турбо-насос', desc: 'Ускоряет поиск госномеров в базах данных', baseCost: 2500, costMult: 2.0, maxLevel: 5 },
+            reseller: { name: '🤝 Перекупщик Алик', desc: 'Автоматически скупает дешевые номера из инвентаря', baseCost: 12000, costMult: 2.8, maxLevel: 3 }
+        };
+
+        const ACHIEVEMENTS_CONFIG = {
+            first_sale: { name: 'Первая сделка', desc: 'Продайте свой первый номер', reward: 3000 },
+            collector: { name: 'Автопарк', desc: 'Соберите 10 номеров в инвентаре', reward: 20000 },
+            magnat: { name: 'Рублевый магнат', desc: 'Заработайте всего 1,000,000 ₽', reward: 150000 },
+            legend: { name: 'Царь дорог', desc: 'Найдите Легендарный номер', reward: 500000 }
+        };
+
+        // Initialize SDK and Load
+        window.addEventListener('load', () => {
+            if (typeof YaGames !== 'undefined') {
+                YaGames.init().then(_ysdk => {
+                    ysdk = _ysdk;
+                    loadCloudData();
+                }).catch(err => {
+                    console.error('Yandex SDK init failed:', err);
+                    loadLocalStorage();
+                });
+            } else {
+                loadLocalStorage();
+            }
+
+            setInterval(gameLoop, 1000);
+            renderUpgrades();
+            renderAchievements();
+            updateResellerUI();
+            updateUI();
+        });
+
+        // Save & Load
+        function saveGame() {
+            const data = JSON.stringify(game);
+            localStorage.setItem('plate_tycoon_save', data);
+            if (player) {
+                player.setData(game).catch(err => console.error('Cloud save error:', err));
+            }
+        }
+
+        function loadLocalStorage() {
+            const saved = localStorage.getItem('plate_tycoon_save');
+            if (saved) {
+                try {
+                    game = Object.assign({}, game, JSON.parse(saved));
+                } catch(e) { console.error('Load error', e); }
+            }
+            updateResellerUI();
+            updateUI();
+        }
+
+        function loadCloudData() {
+            ysdk.getPlayer().then(_player => {
+                player = _player;
+                return player.getData();
+            }).then(data => {
+                if (data && Object.keys(data).length > 0) {
+                    game = Object.assign({}, game, data);
+                } else {
+                    loadLocalStorage();
+                }
+                updateResellerUI();
+                updateUI();
+            }).catch(err => {
+                loadLocalStorage();
+            });
+        }
+
+        // Navigation Tabs
+        function switchTab(tabId) {
+            playSound('click');
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.getAttribute('data-tab') === tabId) {
+                    btn.classList.remove('text-gray-400');
+                    btn.classList.add('text-cyan-400');
+                } else {
+                    btn.classList.add('text-gray-400');
+                    btn.classList.remove('text-cyan-400');
+                }
+            });
+
+            if (tabId === 'inventory') renderInventory();
+            if (tabId === 'upgrades') renderUpgrades();
+            if (tabId === 'achievements') renderAchievements();
+        }
+
+        function getMaxSlots() {
+            return 6 + (game.upgrades.slots * 2);
+        }
+
+        // Core Gameplay: Generation
+        function generatePlate() {
+            if (game.isGenerating) return;
+
+            if (game.inventory.length >= getMaxSlots() && game.currentPlate === null) {
+                showToast('Инвентарь полон! Продайте или освободите слоты.');
+                return;
+            }
+
+            playSound('click');
+            game.isGenerating = true;
+            const btnGen = document.getElementById('btn-generate');
+            btnGen.disabled = true;
+            btnGen.classList.add('opacity-50');
+
+            const placeholder = document.getElementById('plate-placeholder');
+            const activePlateEl = document.getElementById('active-plate');
+            placeholder.classList.remove('hidden');
+            activePlateEl.classList.add('hidden');
+            placeholder.innerText = 'Связь с базой ГИБДД...';
+
+            let counter = 0;
+            const interval = setInterval(() => {
+                const randL = LETTERS[Math.floor(Math.random() * LETTERS.length)];
+                const randD = Math.floor(Math.random() * 900 + 100);
+                placeholder.innerText = `Поиск серии [${randL}${randD}]...`;
+                counter++;
+            }, 60);
+
+            let speedCooldown = 900 - (game.upgrades.speed * 140);
+            if (speedCooldown < 250) speedCooldown = 250;
+
+            setTimeout(() => {
+                clearInterval(interval);
+                placeholder.classList.add('hidden');
+                activePlateEl.classList.remove('hidden');
+
+                // Roll rarity
+                const roll = Math.random() * 100;
+                let luckBonus = game.upgrades.luck * 1.6;
+                let cLegendary = RARITIES.legendary.chance + luckBonus * 0.3;
+                let cEpic = RARITIES.epic.chance + luckBonus * 0.7;
+                let cRare = RARITIES.rare.chance + luckBonus * 1.4;
+
+                let rarityKey = 'common';
+                if (roll < cLegendary) rarityKey = 'legendary';
+                else if (roll < cLegendary + cEpic) rarityKey = 'epic';
+                else if (roll < cLegendary + cEpic + cRare) rarityKey = 'rare';
+
+                const rConfig = RARITIES[rarityKey];
+
+                if (rarityKey === 'legendary' || rarityKey === 'epic') {
+                    playSound('rare');
+                } else {
+                    playSound('click');
+                }
+
+                let l1 = LETTERS[Math.floor(Math.random() * LETTERS.length)];
+                let l2 = LETTERS[Math.floor(Math.random() * LETTERS.length)];
+                let l3 = LETTERS[Math.floor(Math.random() * LETTERS.length)];
+                let digits = '';
+
+                if (rarityKey === 'legendary') {
+                    const d = Math.floor(Math.random() * 9) + 1;
+                    digits = `${d}${d}${d}`;
+                    l1 = 'А'; l2 = 'А'; l3 = 'А';
+                    game.stats.legendaryFound++;
+                    checkAchievements();
+                } else if (rarityKey === 'epic') {
+                    const d = Math.floor(Math.random() * 9) + 1;
+                    digits = `${d}${d}${d}`;
+                } else {
+                    digits = Math.floor(Math.random() * 900) + 100;
+                }
+
+                const region = REGIONS[Math.floor(Math.random() * REGIONS.length)];
+                const price = Math.floor(Math.random() * (rConfig.priceMax - rConfig.priceMin + 1)) + rConfig.priceMin;
+
+                game.currentPlate = {
+                    id: Date.now(),
+                    text: `${l1}${digits}${l2}${l3}`,
+                    region: region,
+                    rarity: rarityKey,
+                    price: price
+                };
+
+                // Render active plate
+                document.getElementById('p-letter1').innerText = l1;
+                document.getElementById('p-digits').innerText = digits;
+                document.getElementById('p-letter2').innerText = `${l2}${l3}`;
+                document.getElementById('p-region').innerText = region;
+
+                const badge = document.getElementById('plate-rarity-badge');
+                badge.className = `text-[10px] px-3 py-1 rounded-full uppercase font-bold mb-3 tracking-wider ${rConfig.color}`;
+                badge.innerText = rConfig.name;
+
+                document.getElementById('plate-price').innerText = `${price.toLocaleString()} ₽`;
+
+                // Swap buttons
+                document.getElementById('btn-generate').classList.add('hidden');
+                document.getElementById('plate-actions').classList.remove('hidden');
+
+                game.stats.platesGenerated++;
+                game.isGenerating = false;
+                btnGen.disabled = false;
+                btnGen.classList.remove('opacity-50');
+                saveGame();
+            }, speedCooldown);
+        }
+
+        function sellCurrentPlate() {
+            if (!game.currentPlate) return;
+            playSound('sell');
+            game.money += game.currentPlate.price;
+            game.stats.totalEarned += game.currentPlate.price;
+            showToast(`Продано за ${game.currentPlate.price.toLocaleString()} ₽`);
+            
+            checkAchievements();
+            resetActivePlate();
+            updateUI();
+            saveGame();
+        }
+
+        function storeCurrentPlate() {
+            if (!game.currentPlate) return;
+            if (game.inventory.length >= getMaxSlots()) {
+                showToast('Инвентарь полон!');
+                return;
+            }
+
+            playSound('click');
+            game.inventory.push(game.currentPlate);
+            showToast('Добавлено в инвентарь');
+            checkAchievements();
+            resetActivePlate();
+            updateUI();
+            saveGame();
+        }
+
+        function resetActivePlate() {
+            game.currentPlate = null;
+            document.getElementById('active-plate').classList.add('hidden');
+            document.getElementById('plate-placeholder').classList.remove('hidden');
+            document.getElementById('plate-placeholder').innerText = 'Нажмите «Получить номер», чтобы найти редкий лот';
+            document.getElementById('plate-actions').classList.add('hidden');
+            document.getElementById('btn-generate').classList.remove('hidden');
+        }
+
+        // Inventory
+        function renderInventory() {
+            const grid = document.getElementById('inventory-grid');
+            grid.innerHTML = '';
+            const maxSlots = getMaxSlots();
+
+            for (let i = 0; i < maxSlots; i++) {
+                const plate = game.inventory[i];
+                const slotDiv = document.createElement('div');
+                
+                if (plate) {
+                    const rConf = RARITIES[plate.rarity];
+                    slotDiv.className = `bg-[#111827] border border-gray-800 rounded-xl p-3 flex flex-col justify-between`;
+                    slotDiv.innerHTML = `
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[9px] px-2 py-0.5 rounded ${rConf.color}">${rConf.name}</span>
+                            <span class="text-xs font-bold text-emerald-400">${plate.price.toLocaleString()} ₽</span>
+                        </div>
+                        <div class="bg-white text-black font-mono font-black rounded px-2 py-1.5 text-center text-sm tracking-wider my-1 relative overflow-hidden">
+                            <div class="absolute inset-0 bg-gradient-to-b from-white/60 via-transparent to-black/10 pointer-events-none"></div>
+                            ${plate.text} <span class="text-xs">${plate.region}</span>
+                        </div>
+                        <button onclick="sellInventoryItem(${plate.id})" class="mt-1.5 w-full bg-rose-600 hover:bg-rose-500 text-white text-[11px] py-1.5 rounded-lg transition font-medium">Продать</button>
+                    `;
+                } else {
+                    slotDiv.className = `bg-[#0b0f19] border border-dashed border-gray-800 rounded-xl p-4 flex items-center justify-center min-h-[110px] text-gray-600 text-[11px]`;
+                    slotDiv.innerText = `Слот ${i + 1}`;
+                }
+                grid.appendChild(slotDiv);
+            }
+        }
+
+        function sellInventoryItem(id) {
+            const index = game.inventory.findIndex(p => p.id === id);
+            if (index !== -1) {
+                playSound('sell');
+                const plate = game.inventory[index];
+                game.money += plate.price;
+                game.stats.totalEarned += plate.price;
+                game.inventory.splice(index, 1);
+                showToast(`Продано за ${plate.price.toLocaleString()} ₽`);
+                checkAchievements();
+                renderInventory();
+                updateUI();
+                saveGame();
+            }
+        }
+
+        function sellAllPlates() {
+            if (game.inventory.length === 0) return;
+            playSound('sell');
+            let total = 0;
+            game.inventory.forEach(p => total += p.price);
+            game.money += total;
+            game.stats.totalEarned += total;
+            game.inventory = [];
+            showToast(`Продано всё за ${total.toLocaleString()} ₽`);
+            checkAchievements();
+            renderInventory();
+            updateUI();
+            saveGame();
+        }
+
+        // Upgrades
+        function renderUpgrades() {
+            const list = document.getElementById('upgrades-list');
+            list.innerHTML = '';
+
+            for (const [key, conf] of Object.entries(UPGRADE_CONFIGS)) {
+                const currentLevel = game.upgrades[key];
+                const isMax = currentLevel >= conf.maxLevel;
+                const cost = Math.floor(conf.baseCost * Math.pow(conf.costMult, currentLevel));
+
+                const item = document.createElement('div');
+                item.className = `bg-[#111827] border border-gray-800 rounded-xl p-3.5 flex flex-col justify-between`;
+                item.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-bold text-xs text-cyan-300">${conf.name}</h3>
+                            <p class="text-[11px] text-gray-400 mt-0.5">${conf.desc}</p>
+                        </div>
+                        <span class="text-[10px] font-semibold bg-gray-800 px-2 py-0.5 rounded text-gray-300">Ур. ${currentLevel}/${conf.maxLevel}</span>
+                    </div>
+                    <div class="flex justify-between items-center mt-3">
+                        <span class="text-xs font-bold text-amber-400">${isMax ? 'МАКСИМУМ' : cost.toLocaleString() + ' ₽'}</span>
+                        <button onclick="buyUpgrade('${key}')" ${isMax ? 'disabled' : ''} class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-[11px] font-bold rounded-lg transition">
+                            ${isMax ? 'Максимум' : 'Купить'}
+                        </button>
+                    </div>
+                `;
+                list.appendChild(item);
+            }
+        }
+
+        function buyUpgrade(key) {
+            const conf = UPGRADE_CONFIGS[key];
+            const currentLevel = game.upgrades[key];
+            if (currentLevel >= conf.maxLevel) return;
+
+            const cost = Math.floor(conf.baseCost * Math.pow(conf.costMult, currentLevel));
+            if (game.money < cost) {
+                showToast('Недостаточно средств!');
+                return;
+            }
+
+            playSound('click');
+            game.money -= cost;
+            game.upgrades[key]++;
+            showToast('Успешно улучшено!');
+            
+            updateResellerUI();
+            renderUpgrades();
+            updateUI();
+            saveGame();
+        }
+
+        // Reseller Logic & Toggle
+        function toggleReseller() {
+            if (game.upgrades.reseller === 0) {
+                showToast('Сначала наймите перекупщика в Апгрейдах!');
+                return;
+            }
+            playSound('click');
+            game.resellerActive = !game.resellerActive;
+            updateResellerUI();
+            saveGame();
+        }
+
+        function updateResellerUI() {
+            const toggleBtn = document.getElementById('reseller-toggle-btn');
+            const statusText = document.getElementById('reseller-status-text');
+            const lvl = game.upgrades.reseller;
+
+            if (lvl === 0) {
+                toggleBtn.innerText = 'ВЫКЛ';
+                toggleBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-gray-800 text-gray-600 cursor-not-allowed';
+                toggleBtn.disabled = true;
+                statusText.innerText = 'Ур. 0 (Купите в апгрейдах)';
+            } else {
+                toggleBtn.disabled = false;
+                if (game.resellerActive) {
+                    toggleBtn.innerText = 'ВКЛ';
+                    toggleBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-emerald-600 text-white shadow-md shadow-emerald-900/40';
+                    statusText.innerText = `Ур. ${lvl} (Активен)`;
+                } else {
+                    toggleBtn.innerText = 'ВЫКЛ';
+                    toggleBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-gray-800 text-gray-300 hover:bg-gray-700';
+                    statusText.innerText = `Ур. ${lvl} (Пауза)`;
+                }
+            }
+        }
+
+        // Achievements
+        function renderAchievements() {
+            const list = document.getElementById('achievements-list');
+            list.innerHTML = '';
+
+            for (const [key, conf] of Object.entries(ACHIEVEMENTS_CONFIG)) {
+                const isUnlocked = game.achievements[key];
+                const item = document.createElement('div');
+                item.className = `bg-[#111827] border ${isUnlocked ? 'border-emerald-500/50' : 'border-gray-800'} rounded-xl p-3.5 flex items-center justify-between`;
+                item.innerHTML = `
+                    <div>
+                        <h3 class="font-bold text-xs ${isUnlocked ? 'text-emerald-400' : 'text-gray-300'}">${conf.name}</h3>
+                        <p class="text-[11px] text-gray-400 mt-0.5">${conf.desc}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[11px] font-bold ${isUnlocked ? 'text-emerald-400' : 'text-gray-500'}">${isUnlocked ? 'Выполнено' : '+' + conf.reward.toLocaleString() + ' ₽'}</span>
+                    </div>
+                `;
+                list.appendChild(item);
+            }
+        }
+
+        function checkAchievements() {
+            let updated = false;
+            if (!game.achievements.first_sale && game.stats.totalEarned > 0) {
+                game.achievements.first_sale = true;
+                game.money += ACHIEVEMENTS_CONFIG.first_sale.reward;
+                showToast('Ачивка: Первая сделка (+3,000 ₽)');
+                updated = true;
+            }
+            if (!game.achievements.collector && game.inventory.length >= 10) {
+                game.achievements.collector = true;
+                game.money += ACHIEVEMENTS_CONFIG.collector.reward;
+                showToast('Ачивка: Автопарк (+20,000 ₽)');
+                updated = true;
+            }
+            if (!game.achievements.magnat && game.stats.totalEarned >= 1000000) {
+                game.achievements.magnat = true;
+                game.money += ACHIEVEMENTS_CONFIG.magnat.reward;
+                showToast('Ачивка: Рублевый магнат (+150,000 ₽)');
+                updated = true;
+            }
+            if (!game.achievements.legend && game.stats.legendaryFound > 0) {
+                game.achievements.legend = true;
+                game.money += ACHIEVEMENTS_CONFIG.legend.reward;
+                showToast('Ачивка: Царь дорог (+500,000 ₽)');
+                updated = true;
+            }
+            if (updated) {
+                renderAchievements();
+                saveGame();
+            }
+        }
+
+        // Game Loop / Reseller Passive Income
+        let resellerTimer = 0;
+        function gameLoop() {
+            if (game.resellerActive && game.upgrades.reseller > 0 && game.inventory.length > 0) {
+                resellerTimer++;
+                let intervalSec = Math.max(3, 12 - (game.upgrades.reseller * 3));
+
+                if (resellerTimer >= intervalSec) {
+                    resellerTimer = 0;
+                    // Reseller filters out legendary/epic and sells the cheapest common/rare plate
+                    game.inventory.sort((a, b) => a.price - b.price);
+                    const indexToSell = game.inventory.findIndex(p => p.rarity === 'common' || p.rarity === 'rare');
+                    
+                    if (indexToSell !== -1) {
+                        const soldPlate = game.inventory.splice(indexToSell, 1)[0];
+                        game.money += soldPlate.price;
+                        game.stats.totalEarned += soldPlate.price;
+                        playSound('sell');
+                        showToast(`Перекупщик продал ${soldPlate.text} за ${soldPlate.price.toLocaleString()} ₽`);
+                        checkAchievements();
+                        saveGame();
+                        updateUI();
+                    }
+                }
+            }
+        }
+
+        // Rewarded Video Ad
+        function watchAdForBonus() {
+            playSound('click');
+            if (ysdk) {
+                ysdk.adv.showRewardedVideo({
+                    callback: {
+                        onRewarded: () => {
+                            game.money += 150000;
+                            game.stats.totalEarned += 150000;
+                            showToast('Бонус получен: +150,000 ₽!');
+                            checkAchievements();
+                            updateUI();
+                            saveGame();
+                        },
+                        onError: (e) => { console.error('Ad error', e); }
+                    }
+                });
+            } else {
+                if (confirm('Симуляция рекламы Яндекс Игр: получить бонус +150,000 ₽?')) {
+                    game.money += 150000;
+                    game.stats.totalEarned += 150000;
+                    showToast('Бонус получен: +150,000 ₽!');
+                    checkAchievements();
+                    updateUI();
+                    saveGame();
+                }
+            }
+        }
+
+        // Audio Toggle
+        function toggleAudio() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('audio-btn').innerText = soundEnabled ? '🔊' : '🔇';
+            showToast(soundEnabled ? 'Звук включен' : 'Звук выключен');
+        }
+
+        // UI Update
+        function updateUI() {
+            document.getElementById('money-display').innerText = `${Math.floor(game.money).toLocaleString()} ₽`;
+            document.getElementById('slots-display').innerText = `${game.inventory.length} / ${getMaxSlots()}`;
+        }
+
+        // Toast Notification
+        let toastTimeout = null;
+        function showToast(text) {
+            const toast = document.getElementById('toast');
+            toast.innerText = text;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
